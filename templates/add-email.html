@@ -1,32 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Add Email</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .logo {
+            margin: 20px 0;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #0056b3;
+        }
+
+        form p {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .result {
+            margin-top: 30px;
+            background: #e9f7ef;
+            padding: 15px;
+            border-left: 5px solid #28a745;
+            border-radius: 6px;
+        }
+
+        .result h2 {
+            color: #28a745;
+        }
+    </style>
 </head>
 <body>
-    <div>
-        <img style="width:200px; height:50px" src="https://clarusway.com/wp-content/uploads/2022/12/clarusway-logo-black.png" />
+    <div class="logo">
+        <img style="width:200px; height:50px" src="https://clarusway.com/wp-content/uploads/2022/12/clarusway-logo-black.png" alt="Clarusway Logo" />
     </div>
 
-    <h1>Add Email to the Database</h1>
+    <div class="container">
+        <h1>Add Email to the Database</h1>
 
-    <form action="/add" method="post">
-        <p>
-            <label for="name">User Name:</label>
-            <input type="text" name="username" id="name" required>
-        </p>
-        <p>
-            <label for="email">User Email:</label>
-            <input type="email" name="useremail" id="email" required>
-        </p>
-        <p>
-            <input type="submit" value="Save">
-        </p>
-    </form>
+        <form action="/add" method="post">
+            <p>
+                <label for="name">User Name:</label>
+                <input type="text" name="username" id="name" required>
+            </p>
+            <p>
+                <label for="email">User Email:</label>
+                <input type="email" name="useremail" id="email" required>
+            </p>
+            <p>
+                <input type="submit" value="Save">
+            </p>
+        </form>
 
-    {% if show_result %}
-        <h2>Result</h2>
-        <h3>{{ result_html }}</h3>
-    {% endif %}
+        {% if show_result %}
+            <div class="result">
+                <h2>Result</h2>
+                <h3>{{ result_html }}</h3>
+            </div>
+        {% endif %}
+    </div>
 </body>
 </html>
