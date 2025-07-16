@@ -17,7 +17,7 @@ def get_parameter(name):
 DB_HOST = 'sql-with-flask-web-app.c5i6e2kemznc.us-east-1.rds.amazonaws.com'  # RDS endpoint
 DB_USER = get_parameter('/sql/username')  # Parameter Store path
 DB_PASS = get_parameter('/sql/password')  # Parameter Store path
-DB_NAME = 'sql-with-flask-web-app'  # Veritabanı adı
+DB_NAME = 'email_db'  # Veritabanı adı
 
 # DB bağlantısı için fonksiyon (bağlantıyı her istekte açıp kapatmak daha sağlıklı)
 def get_db_connection():
