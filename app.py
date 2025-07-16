@@ -1,48 +1,32 @@
 from flask import Flask, render_template, request
-import mysql.connector
+from flask_mysqldb import MySQL
 import boto3
-
 
 def get_ssm_parameters():
     ssm = boto3.client('ssm', region_name='us-east-1')
-
-    # AWS SSM Parametrelerini çek
     username_param = ssm.get_parameter(Name='/sql/username')
-    password_param = ssm.get_parameter(Name="/sql/password", WithDecryption=True)
-
-
-    # Parametre değerlerini al
+    password_param = ssm.get_parameter(Name='/sql/password', WithDecryption=True)
     username = username_param['Parameter']['Value']
     password = password_param['Parameter']['Value']
-
     return username, password
 
-# Flask uygulamanızı oluşturun
 app = Flask(__name__)
 
-# SSM'den parametreleri çek
 db_username, db_password = get_ssm_parameters()
-db_endpoint = open("/home/ec2-user/dbserver.endpoint", 'r', encoding='UTF-8')
 
-# Configure mysql database
+with open("/home/ec2-user/dbserver.endpoint", 'r', encoding='UTF-8') as f:
+    db_host = f.readline().strip()
 
-app.config['MYSQL_DATABASE_HOST'] = db_endpoint.readline().strip()
-app.config['MYSQL_DATABASE_USER'] = db_username
-app.config['MYSQL_DATABASE_PASSWORD'] = db_password
-app.config['MYSQL_DATABASE_DB'] = 'Sql-with-Flask-Web-Application'
-app.config['MYSQL_DATABASE_PORT'] = 3306
-db_endpoint.close()
-mysql = MySQL()
-mysql.init_app(app) 
-connection = mysql.connect()
-connection.autocommit(True)
-cursor = connection.cursor()
+app.config['MYSQL_HOST'] = db_host
+app.config['MYSQL_USER'] = db_username
+app.config['MYSQL_PASSWORD'] = db_password
+app.config['MYSQL_DB'] = 'Sql-with-Flask-Web-Application'
+app.config['MYSQL_PORT'] = 3306
 
-def get_db_connection():
-    return mysql.connector.connect(**db_config)
+mysql = MySQL(app)
 
 def init_db():
-    conn = get_db_connection()
+    conn = mysql.connection
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS users")
     cursor.execute("""
@@ -55,23 +39,21 @@ def init_db():
         INSERT INTO users (username, email) VALUES (%s, %s)
     """, [
         ('dora', 'dora@amazon.com'),
-        ('cansın', 'cansın@google.com'),
+        ('cansin', 'cansin@google.com'),
         ('sencer', 'sencer@bmw.com'),
         ('uras', 'uras@mercedes.com'),
         ('ares', 'ares@porche.com'),
     ])
     conn.commit()
     cursor.close()
-    conn.close()
 
 def find_emails(keyword):
-    conn = get_db_connection()
+    conn = mysql.connection
     cursor = conn.cursor()
     query = "SELECT username, email FROM users WHERE username LIKE %s"
     cursor.execute(query, ('%' + keyword + '%',))
     results = cursor.fetchall()
     cursor.close()
-    conn.close()
     if not results:
         return [("Not Found", "Not Found")]
     return results
@@ -79,8 +61,7 @@ def find_emails(keyword):
 def insert_email(name, email):
     if not name or not email:
         return 'Username or email cannot be empty!!'
-
-    conn = get_db_connection()
+    conn = mysql.connection
     cursor = conn.cursor()
     query = "SELECT username FROM users WHERE username = %s"
     cursor.execute(query, (name,))
@@ -93,7 +74,6 @@ def insert_email(name, email):
         conn.commit()
         response = f"User {name} and {email} have been added successfully"
     cursor.close()
-    conn.close()
     return response
 
 @app.route('/', methods=['GET', 'POST'])
@@ -116,5 +96,5 @@ def add_email():
         return render_template('add-email.html', show_result=False)
 
 if __name__ == '__main__':
-    init_db()  # Initialize database tables and data once
+    # init_db()  # Sadece ilk seferde manuel çalıştırın, production için yorumda bırakın
     app.run(host='0.0.0.0', port=80, debug=True)
