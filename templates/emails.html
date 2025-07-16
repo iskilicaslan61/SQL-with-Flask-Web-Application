@@ -4,23 +4,33 @@
     <title>User Emails</title>
 </head>
 <body>
-    <div><img style="width:200px; height:50px" src="https://clarusway.com/wp-content/uploads/2022/12/clarusway-logo-black.png" /></div>
+    <div>
+        <img style="width:200px; height:50px" src="https://clarusway.com/wp-content/uploads/2022/12/clarusway-logo-black.png" />
+    </div>
+    
     <h1>Welcome to Email Database</h1>
-    <form action="#" method="post">
-        <p>
 
-            <label for="name">User Name : </label>
-            <input type="text" name="user_keyword" id="name">
+    <form action="/" method="post">
+        <p>
+            <label for="name">User Name:</label>
+            <input type="text" name="user_keyword" id="name" required>
         </p>
-        <p><input type="submit" value="Show"></p>
+        <p>
+            <input type="submit" value="Show">
+        </p>
     </form>
+
     {% if show_result %}
-        <h1>Result for '{{ keyword }}' </h1>
-            <ul> 
-            {% for x in name_emails %}
-            <li>Username: <b>{{ x[0] }} </b>  ---- Email: <b>{{ x[1] }}</b></li>
-            {% endfor %}
+        <h2>Result for '{{ keyword }}'</h2>
+        {% if name_emails %}
+            <ul>
+                {% for app_name, email in name_emails %}
+                    <li><b>App Name:</b> {{ app_name }} ---- <b>Email:</b> {{ email }}</li>
+                {% endfor %}
             </ul>
+        {% else %}
+            <p>No results found for '{{ keyword }}'</p>
+        {% endif %}
     {% endif %}
 </body>
 </html>
