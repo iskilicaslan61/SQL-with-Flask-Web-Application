@@ -1,80 +1,60 @@
 from flask import Flask, render_template, request
-from flask_mysqldb import MySQL
 import boto3
-
-def get_ssm_parameters():
-    ssm = boto3.client('ssm', region_name='us-east-1')
-    username_param = ssm.get_parameter(Name='/sql/username')
-    password_param = ssm.get_parameter(Name='/sql/password', WithDecryption=True)
-    username = username_param['Parameter']['Value']
-    password = password_param['Parameter']['Value']
-    return username, password
+import pymysql
 
 app = Flask(__name__)
 
-db_username, db_password = get_ssm_parameters()
+# AWS region
+AWS_REGION = 'us-east-1'  # Bunu kendi bölgenle değiştir
 
-with open("/home/ec2-user/dbserver.endpoint", 'r', encoding='UTF-8') as f:
-    db_host = f.readline().strip()
+# Parameter Store’dan kullanıcı adı ve şifreyi okuyan fonksiyon
+def get_parameter(name):
+    ssm = boto3.client('ssm', region_name=AWS_REGION)
+    response = ssm.get_parameter(Name=name, WithDecryption=True)
+    return response['Parameter']['Value']
 
-app.config['MYSQL_HOST'] = db_host
-app.config['MYSQL_USER'] = db_username
-app.config['MYSQL_PASSWORD'] = db_password
-app.config['MYSQL_DB'] = 'Sql-with-Flask-Web-Application'
-app.config['MYSQL_PORT'] = 3306
+# DB bilgilerini Parameter Store’dan al
+DB_HOST = 'your-rds-endpoint.amazonaws.com'  # RDS endpoint
+DB_USER = get_parameter('/your-app/db-username')  # Parameter Store path
+DB_PASS = get_parameter('/your-app/db-password')
+DB_NAME = 'yourdbname'
 
-mysql = MySQL(app)
+# DB bağlantısı için fonksiyon (bağlantıyı her istekte açıp kapatmak daha sağlıklı)
+def get_db_connection():
+    return pymysql.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASS,
+        db=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor
+    )
 
-def init_db():
-    conn = mysql.connection
-    cursor = conn.cursor()
-    cursor.execute("DROP TABLE IF EXISTS users")
-    cursor.execute("""
-        CREATE TABLE users(
-            username VARCHAR(255) NOT NULL PRIMARY KEY,
-            email VARCHAR(255)
-        )
-    """)
-    cursor.executemany("""
-        INSERT INTO users (username, email) VALUES (%s, %s)
-    """, [
-        ('dora', 'dora@amazon.com'),
-        ('cansin', 'cansin@google.com'),
-        ('sencer', 'sencer@bmw.com'),
-        ('uras', 'uras@mercedes.com'),
-        ('ares', 'ares@porche.com'),
-    ])
-    conn.commit()
-    cursor.close()
+# Email arama fonksiyonu
+def find_emails(app_name):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT email FROM users WHERE app_name=%s"
+            cursor.execute(sql, (app_name,))
+            result = cursor.fetchall()
+            emails = [row['email'] for row in result]
+    finally:
+        conn.close()
+    return emails
 
-def find_emails(keyword):
-    conn = mysql.connection
-    cursor = conn.cursor()
-    query = "SELECT username, email FROM users WHERE username LIKE %s"
-    cursor.execute(query, ('%' + keyword + '%',))
-    results = cursor.fetchall()
-    cursor.close()
-    if not results:
-        return [("Not Found", "Not Found")]
-    return results
-
-def insert_email(name, email):
-    if not name or not email:
-        return 'Username or email cannot be empty!!'
-    conn = mysql.connection
-    cursor = conn.cursor()
-    query = "SELECT username FROM users WHERE username = %s"
-    cursor.execute(query, (name,))
-    exists = cursor.fetchone()
-    if exists:
-        response = f"User {name} already exists"
-    else:
-        insert = "INSERT INTO users (username, email) VALUES (%s, %s)"
-        cursor.execute(insert, (name, email))
+# Email ekleme fonksiyonu
+def insert_email(app_name, email):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO users (app_name, email) VALUES (%s, %s)"
+            cursor.execute(sql, (app_name, email))
         conn.commit()
-        response = f"User {name} and {email} have been added successfully"
-    cursor.close()
-    return response
+        return "Email başarıyla eklendi."
+    except Exception as e:
+        return f"Hata oluştu: {e}"
+    finally:
+        conn.close()
 
 @app.route('/', methods=['GET', 'POST'])
 def emails():
