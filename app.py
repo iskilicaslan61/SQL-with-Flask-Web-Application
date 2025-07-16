@@ -34,15 +34,15 @@ def find_emails(app_name):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            sql = "SELECT email FROM users WHERE app_name=%s"
+            sql = "SELECT app_name, email FROM users WHERE app_name=%s"
             cursor.execute(sql, (app_name,))
             result = cursor.fetchall()
-            emails = [row['email'] for row in result]
+            emails = [(row['app_name'], row['email']) for row in result]
     finally:
         conn.close()
     return emails
 
-# Email ekleme fonksiyonu
+
 def insert_email(app_name, email):
     conn = get_db_connection()
     try:
@@ -50,11 +50,12 @@ def insert_email(app_name, email):
             sql = "INSERT INTO users (app_name, email) VALUES (%s, %s)"
             cursor.execute(sql, (app_name, email))
         conn.commit()
-        return "Email başarıyla eklendi."
+        return "Email is successfully added."
     except Exception as e:
-        return f"Hata oluştu: {e}"
+        return f"Error is occurred: {e}"
     finally:
         conn.close()
+
 
 @app.route('/', methods=['GET', 'POST'])
 def emails():
