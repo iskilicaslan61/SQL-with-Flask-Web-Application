@@ -1,38 +1,38 @@
 from flask import Flask, render_template, request
 import boto3
 import pymysql
+import json
+from botocore.exceptions import ClientError
 
 app = Flask(__name__)
 
-AWS_REGION = 'us-east-1'
 
+def get_secret():
+    secret_name = "sql-flask-app"
+    region_name = "us-east-1"
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        raise e
 
-def get_parameter(name):
-    ssm = boto3.client('ssm', region_name=AWS_REGION)
-    response = ssm.get_parameter(Name=name, WithDecryption=True)
-    return response['Parameter']['Value']
-
-
-def get_rds_endpoint(db_instance_identifier):
-    rds = boto3.client('rds', region_name=AWS_REGION)
-    response = rds.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
-    endpoint = response['DBInstances'][0]['Endpoint']['Address']
-    return endpoint
-
-
-DB_INSTANCE_IDENTIFIER = 'database-1' # Replace with your RDS instance identifier
-DB_HOST = get_rds_endpoint(DB_INSTANCE_IDENTIFIER)
-DB_USER = get_parameter('/sql/username')
-DB_PASS = get_parameter('/sql/password')
-DB_NAME = 'email_db' # Replace with your database name
+    secret = get_secret_value_response['SecretString']
+    return json.loads(secret)  # Return as dict
 
 
 def get_db_connection():
+    secret = get_secret()
     return pymysql.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASS,
-        db=DB_NAME,
+        host=secret['host'],
+        user=secret['username'],
+        password=secret['password'],
+        db=secret.get('dbname', 'email_db'),  # Use 'email_db' if not in secret
         cursorclass=pymysql.cursors.DictCursor
     )
 
