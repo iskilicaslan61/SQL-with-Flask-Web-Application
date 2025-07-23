@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>User Emails</title>
+    <title>Delete User by App Name</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -14,37 +14,31 @@
             padding: 20px;
             min-height: 100vh;
         }
-
         .logo {
             margin: 20px 0;
         }
-
         .container {
             background: #fff;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+            max-width: 500px;
             width: 100%;
             text-align: center;
         }
-
         h1 {
-            color: #0056b3;
+            color: #c00;
             margin-bottom: 25px;
         }
-
         form p {
             margin: 15px 0;
             text-align: left;
         }
-
         label {
             display: block;
             margin-bottom: 6px;
             font-weight: 600;
         }
-
         input[type="text"] {
             width: 100%;
             padding: 10px;
@@ -52,10 +46,9 @@
             border-radius: 6px;
             box-sizing: border-box;
         }
-
         input[type="submit"],
         .nav-button {
-            background-color: #007bff;
+            background-color: #c00;
             color: white;
             border: none;
             padding: 12px 20px;
@@ -66,12 +59,10 @@
             margin-top: 10px;
             transition: background-color 0.3s ease;
         }
-
         input[type="submit"]:hover,
         .nav-button:hover {
-            background-color: #0056b3;
+            background-color: #900;
         }
-
         .result {
             margin-top: 30px;
             background: #fff8e1;
@@ -80,29 +71,6 @@
             border-radius: 6px;
             text-align: left;
         }
-
-        .result h2 {
-            color: #ff9800;
-            margin-bottom: 15px;
-        }
-
-        ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-
-        li {
-            background: #f9f9f9;
-            margin-bottom: 10px;
-            padding: 10px 15px;
-            border-left: 4px solid #007bff;
-            border-radius: 6px;
-        }
-
-        li b {
-            color: #333;
-        }
-
         .footer {
             margin-top: auto;
             padding: 15px;
@@ -116,46 +84,29 @@
     <div class="logo">
         <img style="width:200px; height:50px" src="https://ondiacademy.com/wp-content/uploads/2024/06/Element-1.png" alt="ONDIAcademy Logo" />  
     </div>
-
     <div class="container">
-        <h1>Welcome to Email Database</h1>
-
-        <form action="/" method="post">
+        <h1>Delete User by App Name</h1>
+        <form method="POST" action="/delete">
             <p>
-                <label for="name">User Name:</label>
-                <input type="text" name="user_keyword" id="name" required>
+                <label for="username">App Name (Username):</label>
+                <input type="text" id="username" name="username" required>
             </p>
             <p>
-                <input type="submit" value="Show">
+                <input type="submit" value="Delete">
             </p>
         </form>
-
-        <form action="/add" method="get">
-            <button type="submit" class="nav-button">Add New Email</button>
+        <form action="/" method="get">
+            <button type="submit" class="nav-button">Back to Home</button>
         </form>
-
-        <form action="/delete" method="get">
-            <button type="submit" class="nav-button" style="background-color:#c00; margin-top:5px;">Delete User</button>
-        </form>
-
         {% if show_result %}
             <div class="result">
-                <h2>Result for '{{ keyword }}'</h2>
-                {% if name_emails %}
-                    <ul>
-                        {% for app_name, email in name_emails %}
-                            <li><b>App Name:</b> {{ app_name }} &nbsp;&nbsp;&nbsp; <b>Email:</b> {{ email }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No results found for '{{ keyword }}'</p>
-                {% endif %}
+                <h2>Result</h2>
+                <h3>{{ result_html }}</h3>
             </div>
         {% endif %}
     </div>
-
     <div class="footer">
         © 2025 This website is created by Ismail Kilicaslan. All rights reserved.
     </div>
 </body>
-</html>
+</html> 
