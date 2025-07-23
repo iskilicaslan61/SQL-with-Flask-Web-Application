@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy Flask web app on EC2 and connect to RDS using IAM and Secrets Manager
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64'
+
+Resources:
+
+  # --- Security Groups ---
+  FlaskAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP and SSH access to Flask EC2
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0  # SSH - production'da sınırlandır
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0  # HTTP
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow RDS access only from Flask EC2
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !GetAtt FlaskAppSecurityGroup.GroupId
+
+
+  # --- Secrets Manager: DB Credentials ---
+  RDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: flask-rds-credentials
+      Description: Credentials for RDS MySQL
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  # --- RDS MySQL Instance ---
+  MySQLDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      Engine: mysql
+      EngineVersion: 8.0.35
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RDSSecret, ':SecretString:username}}']]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RDSSecret, ':SecretString:password}}']]
+      VPCSecurityGroups:
+        - !GetAtt RDSSecurityGroup.GroupId
+      PubliclyAccessible: true
+      DBName: flaskdb
+      BackupRetentionPeriod: 0
+
+  # --- IAM Role: Allow EC2 to access Secrets Manager ---
+  FlaskEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: AccessRDSSecret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref RDSSecret
+
+  FlaskEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref FlaskEC2Role
+
+  # --- EC2 Instance to run Flask app ---
+  FlaskAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref FlaskAppSecurityGroup
+      IamInstanceProfile: !Ref FlaskEC2InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          sudo git jq aws-cli
+          pip3 install flask pymysql boto3
+
+          cd /home/ec2-user
+          git clone https://github.com/iskilicaslan61/SQL-with-Flask-Web-Application.git
+          cd SQL-with-Flask-Web-Application
+
+          # Get credentials from Secrets Manager
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id ${RDSSecret} --query SecretString --output text)
+          export DB_USER=$(echo $SECRET_JSON | jq -r .username)
+          export DB_PASS=$(echo $SECRET_JSON | jq -r .password)
+          export DB_HOST=${MySQLDatabase.Endpoint.Address}
+          export DB_NAME=flaskdb
+
+          # Run Flask app
+          FLASK_APP=app.py nohup python3 app.py &
+
+Outputs:
+  FlaskAppURL:
+    Description: Public URL to access Flask app
+    Value: !Sub "http://${FlaskAppInstance.PublicDnsName}"
+
+  RDSEndpoint:
+    Description: Endpoint of the MySQL RDS instance
+    Value: !GetAtt MySQLDatabase.Endpoint.Address
+
+  SecretName:
+    Description: Name of the created Secrets Manager secret
+    Value: !Ref RDSSecret

@@ -1,28 +1,15 @@
 from flask import Flask, render_template, request
-import boto3
 import pymysql
 
 app = Flask(__name__)
 
-AWS_REGION = 'us-east-1'
+# Lokal MySQL veritabanı bilgileri
+DB_HOST = 'localhost'
+DB_USER = 'root'            # MySQL kullanıcı adını buraya yaz
+DB_PASS = '21062019'   # MySQL şifreni buraya yaz
+DB_NAME = 'email_db'        # Daha önce oluşturduğun veritabanı adı
 
-def get_parameter(name):
-    ssm = boto3.client('ssm', region_name=AWS_REGION)
-    response = ssm.get_parameter(Name=name, WithDecryption=True)
-    return response['Parameter']['Value']
-
-def get_rds_endpoint(db_instance_identifier):
-    rds = boto3.client('rds', region_name=AWS_REGION)
-    response = rds.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
-    endpoint = response['DBInstances'][0]['Endpoint']['Address']
-    return endpoint
-
-DB_INSTANCE_IDENTIFIER = 'sql-flask-app-database'  # RDS instance adınızı yazın
-DB_HOST = get_rds_endpoint(DB_INSTANCE_IDENTIFIER)
-DB_USER = get_parameter('/sql/username')
-DB_PASS = get_parameter('/sql/password')
-DB_NAME = 'email_db'
-
+# Veritabanı bağlantısı
 def get_db_connection():
     return pymysql.connect(
         host=DB_HOST,
@@ -32,25 +19,7 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# ✅ Tabloyu oluşturmak için init_db fonksiyonu
-def init_db():
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    app_name VARCHAR(255) NOT NULL,
-                    email VARCHAR(255) NOT NULL
-                )
-            """)
-        conn.commit()
-        print("Table 'users' ensured.")
-    except Exception as e:
-        print(f"Error initializing DB: {e}")
-    finally:
-        conn.close()
-
+# Email arama
 def find_emails(app_name):
     conn = get_db_connection()
     try:
@@ -63,6 +32,7 @@ def find_emails(app_name):
         conn.close()
     return emails
 
+# Email ekleme
 def insert_email(app_name, email):
     conn = get_db_connection()
     try:
@@ -70,12 +40,13 @@ def insert_email(app_name, email):
             sql = "INSERT INTO users (app_name, email) VALUES (%s, %s)"
             cursor.execute(sql, (app_name, email))
         conn.commit()
-        return "Email is successfully added."
+        return "Email başarıyla eklendi."
     except Exception as e:
-        return f"Error is occurred: {e}"
+        return f"Hata oluştu: {e}"
     finally:
         conn.close()
 
+# Ana sayfa - Email arama
 @app.route('/', methods=['GET', 'POST'])
 def emails():
     if request.method == 'POST':
@@ -85,6 +56,7 @@ def emails():
     else:
         return render_template('emails.html', show_result=False)
 
+# Email ekleme sayfası
 @app.route('/add', methods=['GET', 'POST'])
 def add_email():
     if request.method == 'POST':
@@ -96,5 +68,4 @@ def add_email():
         return render_template('add-email.html', show_result=False)
 
 if __name__ == '__main__':
-    init_db()  # ✅ İlk çalıştırmada tabloyu oluşturur
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)  # 5000 portunu kullan
