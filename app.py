@@ -20,11 +20,7 @@ def get_rds_endpoint(db_instance_identifier):
     return endpoint
 
 
-<<<<<<< HEAD
-DB_INSTANCE_IDENTIFIER = 'database-1' # Replace with your RDS instance identifier
-=======
 DB_INSTANCE_IDENTIFIER = 'sql-flask-app-database'  # RDS instance adınızı yazın
->>>>>>> c85a15d6a0b4f05cfc6dd078339f04adc304c8f3
 DB_HOST = get_rds_endpoint(DB_INSTANCE_IDENTIFIER)
 DB_USER = get_parameter('/sql/username')
 DB_PASS = get_parameter('/sql/password')
