@@ -3,11 +3,14 @@ import pymysql
 
 app = Flask(__name__)
 
-# Lokal MySQL veritabanı bilgileri
-DB_HOST = 'localhost'
-DB_USER = 'root'            # MySQL kullanıcı adını buraya yaz
-DB_PASS = '21062019'   # MySQL şifreni buraya yaz
-DB_NAME = 'email_db'        # Daha önce oluşturduğun veritabanı adı
+# Local MySQL database connection parameters
+# Replace these with your actual local MySQL database credentials
+DB_HOST = 'localhost'  # Local MySQL server address
+# If you are using a different port, specify it here (default MySQL port is 3306)
+# DB_PORT = 3306  # Uncomment if using a non-default port
+DB_USER = 'root'  # Replace with your MySQL root username   
+DB_PASS = 'password'  # Replace with your MySQL root password
+DB_NAME = 'data_db'        
 
 # Veritabanı bağlantısı
 def get_db_connection():

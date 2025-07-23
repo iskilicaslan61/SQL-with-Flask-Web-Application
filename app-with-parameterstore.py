@@ -20,11 +20,11 @@ def get_rds_endpoint(db_instance_identifier):
     return endpoint
 
 
-DB_INSTANCE_IDENTIFIER = 'sql-flask-app-database'  # RDS instance adınızı yazın
+DB_INSTANCE_IDENTIFIER = 'sql-flask-app-database'  # Replace with your actual DB instance identifier
 DB_HOST = get_rds_endpoint(DB_INSTANCE_IDENTIFIER)
 DB_USER = get_parameter('/sql/username')
 DB_PASS = get_parameter('/sql/password')
-DB_NAME = 'email_db' # Replace with your database name
+DB_NAME = 'email_db' # Replace with your actual database name if different
 
 
 
@@ -153,5 +153,5 @@ def delete_email():
 
 
 if __name__ == '__main__':
-    init_db()  # ✅ İlk çalıştırmada tabloyu oluşturur
+    init_db()  # first run to ensure the database is initialized
     app.run(host='0.0.0.0', port=8080, debug=True)
